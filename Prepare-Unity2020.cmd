@@ -1,6 +1,7 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title BoatAttack - Prepare a clean Unity 2020 project
+title BoatAttack - Unity 2020 recovery v2
+echo BoatAttack Unity 2020 recovery v2 - no administrator rights needed.
 
 rem Create a NEW copy from the published adventure commit.
 rem Never restore, clean, reset, or delete files in the original project.
@@ -34,8 +35,15 @@ set "PATH=%gitBin%;%gitBin%..\mingw64\bin;%PATH%"
 if errorlevel 1 goto missingLfs
 "%gitExe%" -C "%sourcePath%" cat-file -e "%baseline%^{commit}" >nul 2>&1
 if errorlevel 1 goto missingCommit
-"%gitExe%" -C "%sourcePath%" show "%baseline%:ProjectSettings/ProjectVersion.txt" | findstr /x /c:"m_EditorVersion: 2020.3.23f1" >nul
-if errorlevel 1 goto badVersion
+rem Git show emits LF line endings. FINDSTR /X can reject those on Windows.
+rem Read the version as fields instead, accepting both LF and CRLF.
+set "versionCheck=%TEMP%\BoatAttack-Version-%RANDOM%-%RANDOM%.txt"
+if exist "%versionCheck%" goto targetExists
+"%gitExe%" -C "%sourcePath%" show "%baseline%:ProjectSettings/ProjectVersion.txt" > "%versionCheck%"
+if errorlevel 1 goto versionReadFailed
+set "versionOK="
+for /f "usebackq tokens=1,2" %%A in ("%versionCheck%") do if "%%A"=="m_EditorVersion:" if "%%B"=="2020.3.23f1" set "versionOK=1"
+if not defined versionOK goto badVersion
 
 set "targetPath=%sourcePath%-Unity2020-%RANDOM%-%RANDOM%"
 if exist "%targetPath%" goto targetExists
@@ -105,6 +113,15 @@ echo Then run this tool again. Do not discard local changes.
 goto stop
 :badVersion
 echo ERROR - The source commit does not match Unity 2020.3.23f1.
+echo Version read from the source commit:
+type "%versionCheck%"
+echo Git executable: "%gitExe%"
+echo Source folder: "%sourcePath%"
+goto stop
+:versionReadFailed
+echo ERROR - Git could not read ProjectVersion.txt from the published commit.
+echo Git executable: "%gitExe%"
+echo Source folder: "%sourcePath%"
 goto stop
 :targetExists
 echo ERROR - The generated destination already exists. Run the tool again.
