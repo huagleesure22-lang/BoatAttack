@@ -17,6 +17,9 @@ namespace Tidebound
         Transform lighthouse;
         Light beacon;
         NavMeshSurface surface;
+        Camera overviewCamera;
+        int walkerAgentTypeId = -1;
+        int landCandidateCount;
         Font font;
         GUIStyle titleStyle, textStyle;
         readonly List<Material> materials = new List<Material>();
@@ -25,20 +28,27 @@ namespace Tidebound
         public TidePlayer Player { get; private set; }
         public Material WaterMaterial { get; private set; }
         public bool IsPlaying => phase == Phase.Playing && !paused;
+        public NavMeshQueryFilter NavigationFilter => new NavMeshQueryFilter
+        {
+            agentTypeID = walkerAgentTypeId,
+            areaMask = NavMesh.AllAreas
+        };
 
         IEnumerator Start()
         {
             Time.timeScale = 1;
             SetCursor(false);
             Quest = new TideQuest(EncounterCount);
+            CreateOverviewCamera();
             // Let the loading label render before the synchronous navigation bake.
             yield return null;
             PrepareWorld();
             if (phase == Phase.Error) yield break;
             var points = FindEncounterPoints();
+            Debug.Log($"Tidebound placement: {landCandidateCount} land candidates, {points.Count}/{EncounterCount + 2} selected sites.");
             if (points.Count < EncounterCount + 2)
             {
-                Fail("未找到足够的连通陆地区域。请检查岛屿碰撞体与导航烘焙日志。");
+                Fail($"未找到足够的连通陆地区域：陆地候选 {landCandidateCount}，可用地点 {points.Count}/{EncounterCount + 2}。请查看 Console 中的 Tidebound 导航日志。");
                 yield break;
             }
             var navy = Own(new Color(.045f, .09f, .24f));
@@ -59,6 +69,16 @@ namespace Tidebound
             return material;
         }
 
+        void CreateOverviewCamera()
+        {
+            var go = new GameObject("Tidebound loading camera");
+            go.transform.SetParent(transform, false);
+            go.transform.position = new Vector3(-90, 65, -135);
+            go.transform.LookAt(new Vector3(-30, 4, -30));
+            overviewCamera = go.AddComponent<Camera>();
+            overviewCamera.farClipPlane = 1000;
+        }
+
         void PrepareWorld()
         {
             // These prefab branches are already serialized inactive in tidebound_Island.unity.
@@ -75,7 +95,8 @@ namespace Tidebound
                     Destroy(t.gameObject);
                 }
             }
-            foreach (var camera in GetComponentsInScene<Camera>()) camera.gameObject.SetActive(false);
+            foreach (var camera in GetComponentsInScene<Camera>())
+                if (camera != overviewCamera) camera.gameObject.SetActive(false);
             // Terrain already has TerrainColliders. BoatAttack's decorative architecture does not.
             foreach (var filter in GetComponentsInScene<MeshFilter>())
             {
@@ -89,15 +110,21 @@ namespace Tidebound
                 filter.gameObject.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
             }
             Physics.SyncTransforms();
+            var settings = TideNavigation.CreateWalkerSettings();
+            walkerAgentTypeId = settings.agentTypeID;
+            var bounds = new Bounds(new Vector3(0, 50.8f, 0), new Vector3(360, 100, 360));
+            var sources = new List<NavMeshBuildSource>();
+            NavMeshBuilder.CollectSources(bounds, ~0, NavMeshCollectGeometry.PhysicsColliders,
+                0, new List<NavMeshBuildMarkup>(), sources);
+            sources.RemoveAll(source => source.component != null && source.component.gameObject.scene != gameObject.scene);
             surface = gameObject.AddComponent<NavMeshSurface>();
-            surface.collectObjects = CollectObjects.Volume;
-            surface.center = new Vector3(0, 50.8f, 0);
-            surface.size = new Vector3(360, 100, 360);
-            surface.useGeometry = NavMeshCollectGeometry.PhysicsColliders;
-            surface.overrideVoxelSize = true;
-            surface.voxelSize = .25f;
-            surface.BuildNavMesh();
-            if (surface.navMeshData == null) Fail("岛屿导航数据创建失败。");
+            surface.agentTypeID = walkerAgentTypeId;
+            // Pass the walking settings directly: NavMeshSurface.GetBuildSettings would
+            // retrieve the registry defaults rather than our modified settings struct.
+            surface.navMeshData = NavMeshBuilder.BuildNavMeshData(settings, sources, bounds, Vector3.zero, Quaternion.identity);
+            if (surface.navMeshData == null) { Fail("岛屿导航数据创建失败。"); return; }
+            surface.AddData();
+            Debug.Log($"Tidebound navigation: walking agent {walkerAgentTypeId}, radius {settings.agentRadius}, slope {settings.agentSlope}, climb {settings.agentClimb}, sources {sources.Count}.");
         }
 
         List<T> GetComponentsInScene<T>() where T : Component
@@ -115,22 +142,35 @@ namespace Tidebound
                 {
                     if (!Physics.Raycast(new Vector3(x, 100, z), Vector3.down, out var floor, 99, ~0, QueryTriggerInteraction.Ignore)) continue;
                     if (floor.point.y < 1 || floor.point.y > 35 || floor.normal.y < .85f) continue;
-                    if (NavMesh.SamplePosition(floor.point, out var hit, 1, NavMesh.AllAreas) && hit.position.y >= .8f)
+                    if (NavMesh.SamplePosition(floor.point, out var hit, 1, NavigationFilter) && hit.position.y >= .8f)
                         land.Add(hit.position);
                 }
+            landCandidateCount = land.Count;
             var result = new List<Vector3>();
             if (land.Count == 0) return result;
             // Prefer the original beach, then select reachable, separated sites on the same island.
             var beach = new Vector3(-63, 3, -79);
             land.Sort((a, b) => (a - beach).sqrMagnitude.CompareTo((b - beach).sqrMagnitude));
-            var spawn = land[0];
+            // A nearby rock can be a disconnected island. Try several starting sites
+            // before rejecting the level, retaining all six encounters and the beacon.
+            for (int start = 0; start < Mathf.Min(32, land.Count); start++)
+            {
+                result = FindSitesFromSpawn(land, land[start]);
+                if (result.Count == EncounterCount + 2) return result;
+            }
+            return result;
+        }
+
+        List<Vector3> FindSitesFromSpawn(List<Vector3> land, Vector3 spawn)
+        {
+            var result = new List<Vector3>();
             result.Add(spawn);
             var path = new NavMeshPath();
             var reachable = new List<Vector3>();
             foreach (var point in land)
             {
                 if (Vector3.Distance(spawn, point) < 18 || Vector3.Distance(spawn, point) > 100) continue;
-                if (!NavMesh.CalculatePath(spawn, point, NavMesh.AllAreas, path) || path.status != NavMeshPathStatus.PathComplete) continue;
+                if (!NavMesh.CalculatePath(spawn, point, NavigationFilter, path) || path.status != NavMeshPathStatus.PathComplete) continue;
                 // Do not place encounters on paths that cross the submerged seabed.
                 bool aboveWater = true;
                 foreach (var corner in path.corners) if (corner.y < .8f) aboveWater = false;
@@ -178,17 +218,21 @@ namespace Tidebound
             var view = camera.AddComponent<TideCamera>();
             view.target = Player;
             Player.view = view;
+            overviewCamera.gameObject.SetActive(false);
         }
 
         void CreateEnemy(int id, Vector3 point, Material teal, Material navy)
         {
             var go = new GameObject("Tidal Echo " + (id + 1));
+            // Configure the agent before OnEnable tries to bind it to a NavMesh.
+            go.SetActive(false);
             go.transform.position = point;
             var capsule = go.AddComponent<CapsuleCollider>();
             capsule.height = 1.8f;
             capsule.center = Vector3.up * .9f;
             capsule.radius = .5f;
             var agent = go.AddComponent<NavMeshAgent>();
+            agent.agentTypeID = walkerAgentTypeId;
             agent.speed = 3;
             agent.angularSpeed = 240;
             agent.acceleration = 12;
@@ -203,6 +247,7 @@ namespace Tidebound
             foreach (var side in new[] { -1f, 1f })
                 TideVisuals.Part(enemy.body, PrimitiveType.Sphere, "Eye", new Vector3(side * .18f, .1f, .45f), Vector3.one * .15f, navy);
             Enemies.Add(enemy);
+            go.SetActive(true);
         }
 
         void CreateLighthouse(Vector3 point, Material white, Material navy, Material gold)
@@ -332,6 +377,12 @@ namespace Tidebound
 
         void OnDestroy()
         {
+            if (surface != null)
+            {
+                surface.RemoveData();
+                if (surface.navMeshData != null) Destroy(surface.navMeshData);
+            }
+            if (walkerAgentTypeId != -1) NavMesh.RemoveSettings(walkerAgentTypeId);
             Time.timeScale = 1;
             SetCursor(false);
             foreach (var material in materials) if (material != null) Destroy(material);

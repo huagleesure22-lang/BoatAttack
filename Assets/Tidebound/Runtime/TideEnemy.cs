@@ -76,8 +76,8 @@ namespace Tidebound
             {
                 // Trace on the NavMesh, so knockback cannot teleport a monster through a wall or into the sea.
                 var end = transform.position + Vector3.ProjectOnPlane(knockback, Vector3.up);
-                if (NavMesh.Raycast(transform.position, end, out var edge, NavMesh.AllAreas)) end = edge.position;
-                if (NavMesh.SamplePosition(end, out var ground, 1, NavMesh.AllAreas)) agent.Warp(ground.position);
+                if (NavMesh.Raycast(transform.position, end, out var edge, adventure.NavigationFilter)) end = edge.position;
+                if (NavMesh.SamplePosition(end, out var ground, 1, adventure.NavigationFilter)) agent.Warp(ground.position);
                 stunnedUntil = Time.time + .65f;
                 strikeAt = -1;
                 Telegraph(false);

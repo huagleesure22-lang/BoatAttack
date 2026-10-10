@@ -31,6 +31,7 @@ BoatAttack 海岛上的第三人称探索战斗原型。新场景是 `Assets/sce
 
 - 新场景继承原海岛、房屋、海水和光照。原赛车 Logic、Dynamic Objects、Props_Floating 分支在场景中预先关闭，运行时移除，因此不会生成赛艇，也不会显示浮标、皮划艇和风帆。
 - 运行时只在同一片连通陆地选择起点、六个遭遇点和灯塔；避开低于海面的路径。若找不到足够位置，界面报错，不会默默降低通关要求。
+- 冒险使用独立的步行导航类型：半径 0.5 米、高度 2.2 米、坡度 45°、台阶 0.35 米。烘焙、怪物、出生点查询和击退查询都使用该类型；原赛艇的半径 3 米、坡度 0° 设置保留。初始化与失败界面保留俯瞰相机，Console 输出碰撞来源、陆地候选和地点数量。
 - 深蓝礼服、白色发带和礼帽是芙宁娜形象参考的简化占位形象，**并非正式芙宁娜模型**。将有权使用的模型挂在玩家的 `CharacterVisual` 下，可替换现有几何部件；控制器使用脚底为原点，模型应沿 +Z 朝前。
 - 剧情、敌人、任务与战斗数值为本原型原创。正式角色模型、骨骼动画、配音和精细特效尚未提供。
 - 菜单 **Tidebound → Rebuild Adventure From Original Island** 可从原场景重新生成副本，会覆盖冒险场景，使用前保存修改。
@@ -49,6 +50,10 @@ BoatAttack 海岛上的第三人称探索战斗原型。新场景是 `Assets/sce
 Unity 包仍须从官方服务下载。如果新副本还报 `download.packages.unity.com` / `ECONNRESET`，这是包下载连接中断，需另行排查本机网络；恢复项目版本不能解决网络问题。不要关闭 TLS 检查或安装来源不明的替代包。私下提供新的 `Editor.log` 即可继续诊断；日志可能包含登录参数，不要公开上传到仓库或 Issue。
 
 ## 验证
+
+本地新副本需要获取后续修复时，可下载根目录 **Update-Tidebound.cmd**，关闭 Unity 后普通双击运行。默认目标为本次恢复产生的 `D:\github-Unity2020-28206-10141`；放在项目根目录会识别当前目录，其余目录可在工具提示时输入。工具从 GitHub 获取 `tidebound-island` 并执行 `merge --ff-only`，不会丢弃本地修改或强制重置；若本地修改冲突或提交分叉，会停止并显示错误。无需重新克隆或重新下载现有海岛资源。
+
+新增 `WalkingNavigationProvidesACompletePathAcrossASlope` 回归用例在倾斜 10° 的碰撞体上实际烘焙步行导航，并检查两端采样和完整路径。步行设置辅助代码、原导航组件运行时代码和该测试已使用 Unity 2020.3.23f1 的真实模块程序集编译通过；该用例须在 Unity EditMode Test Runner 执行，云端没有执行其导航原生调用，不能记为测试通过。云端完整冒险编译仍因尚未导入 Input System 包而受阻；步行导航修复与整个海岛的 Play Mode 仍需本机验证。
 
 任务状态 EditMode 测试位于 `Assets/Tidebound/Tests/Editor/TideQuestTests.cs`。使用 Test Runner 运行 `Tidebound.Tests`，检查重复事件、防提前通关、灯塔距离/存活条件和新一轮进度。
 
