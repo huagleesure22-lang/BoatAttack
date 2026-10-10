@@ -41,7 +41,7 @@ BoatAttack 海岛上的第三人称探索战斗原型。新场景是 `Assets/sce
 
 如果先用团结引擎 2022 打开同一目录，再用 Unity 2020 打开，会残留升级后的依赖和缓存。典型错误是版本号包含 `t`、找不到 `com.unity.inputsystem@1.14.4-t1` / URP `14.2.0-t1`，以及新增 `com.unity.ai.navigation` 与 `Assets/NavMeshComponents` 的 GUID 冲突。只选择旧编辑器不会把升级后的项目文件恢复成旧版。
 
-关闭该项目的编辑器，下载根目录的 **Prepare-Unity2020.cmd** 并双击。工具会自动使用 GitHub Desktop 的 Git，从已发布的冒险提交 `da267c229f35c66ad771bbe094e4b2eeafd00811` 创建新的同级目录 `原目录-Unity2020-随机数-随机数`，保留原目录及未提交的修改。默认源目录是 `D:\github`；放在仓库根目录运行会自动识别该仓库，找不到时才询问路径。新副本只取 Git 提交里的文件，不复制升级后的工作区、Library 或包锁文件。它复用源目录的 Git LFS 缓存，下载缺失资源并检查 LFS 完整性，恢复原项目的导航组件和 Unity 2020 依赖版本。
+关闭该项目的编辑器，下载根目录的 **Prepare-Unity2020.cmd** 并双击。工具会自动使用 GitHub Desktop 的 Git，从包含步行导航修复的冒险提交 `36e685861410b036ccda973c0278400605937ea6` 创建新的同级目录 `原目录-Unity2020-随机数-随机数`，保留原目录及未提交的修改。默认源目录是 `D:\github`；放在仓库根目录运行会自动识别该仓库，找不到时才询问路径。新副本只取 Git 提交里的文件，不复制升级后的工作区、Library 或包锁文件。它复用源目录的 Git LFS 缓存，下载缺失资源并检查 LFS 完整性，恢复原项目的导航组件和 Unity 2020 依赖版本。若提示找不到该提交，在 GitHub Desktop 先 Fetch origin；已生成的新副本直接用 Update-Tidebound.cmd 更新即可。
 
 看到 **DONE** 后，在 Unity Hub 导入工具显示的新目录，选择 **2020.3.23f1**。新副本以后只用这个版本打开。工具没有在 Windows 上实际执行过；其 Git/LFS 创建副本流程在云端验证过。DONE 仅表示副本准备完成，不能替代 Unity 包解析、编译或试玩检查。
 

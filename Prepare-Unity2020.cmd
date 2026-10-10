@@ -6,7 +6,7 @@ echo BoatAttack Unity 2020 recovery v2 - no administrator rights needed.
 rem Create a NEW copy from the published adventure commit.
 rem Never restore, clean, reset, or delete files in the original project.
 rem Unity packages still need a working connection to Unity's package CDN.
-set "baseline=da267c229f35c66ad771bbe094e4b2eeafd00811"
+set "baseline=36e685861410b036ccda973c0278400605937ea6"
 set "sourcePath=%~dp0"
 if not exist "%sourcePath%\.git" set "sourcePath=D:\github"
 if not exist "%sourcePath%\.git" goto askSource
