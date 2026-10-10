@@ -50,8 +50,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   isGlobal: 1
   priority: 0
   blendDistance: 0
@@ -98,8 +98,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b6edb8448c9b94f018953ca2a6fa5891, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   computeOverride: 1
   _depthTex: {fileID: 0}
   bakedDepthTex: {fileID: 0}
@@ -788,7 +788,7 @@ PrefabInstance:
     - target: {fileID: 5811572584790518576, guid: e8d3746aee68c468f86cbabb0b56502f,
         type: 3}
       propertyPath: m_Sources.Array.data[0].sourceTransform
-      value: 
+      value:
       objectReference: {fileID: 6589000189327295505}
     - target: {fileID: 5076232292041737950, guid: e8d3746aee68c468f86cbabb0b56502f, type: 3}
       propertyPath: m_IsActive
