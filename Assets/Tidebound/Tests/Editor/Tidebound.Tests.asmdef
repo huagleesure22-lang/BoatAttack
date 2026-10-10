@@ -1,0 +1,6 @@
+{
+  "name": "Tidebound.Tests",
+  "references": ["Tidebound.Runtime"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

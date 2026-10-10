@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/scenes/tidebound_Island.unity
+    guid: 3ba624ba13545079889a42e4d3d0fac6
+  - enabled: 0
     path: Assets/scenes/demo_Island.unity
     guid: b3bf1324da98a41e796a5881dd3812eb
   - enabled: 0
@@ -14,7 +17,7 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/scenes/_levels/level_Island.unity
     guid: e49366a21c3d84388bfb33016c0e77e2
-  - enabled: 1
+  - enabled: 0
     path: Assets/scenes/Testing/benchmark_island-static.unity
     guid: bf8529d52d0dac843b94245ecf955d4a
   m_configObjects:

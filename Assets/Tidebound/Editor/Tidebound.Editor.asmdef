@@ -1,0 +1,5 @@
+{
+  "name": "Tidebound.Editor",
+  "references": ["Tidebound.Runtime"],
+  "includePlatforms": ["Editor"]
+}

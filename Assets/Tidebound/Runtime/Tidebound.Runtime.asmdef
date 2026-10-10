@@ -1,0 +1,5 @@
+{
+  "name": "Tidebound.Runtime",
+  "references": ["Unity.InputSystem", "NavMeshComponents"],
+  "autoReferenced": true
+}
