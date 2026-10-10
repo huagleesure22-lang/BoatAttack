@@ -36,6 +36,16 @@ BoatAttack 海岛上的第三人称探索战斗原型。新场景是 `Assets/sce
 - 菜单 **Tidebound → Rebuild Adventure From Original Island** 可从原场景重新生成副本，会覆盖冒险场景，使用前保存修改。
 - 已将冒险场景设为唯一启用的构建场景。菜单 **Tidebound → Build Adventure (Current Desktop Target)** 可独立构建桌面目标；需安装相应模块。此冒险流程不调用原赛车 Addressables 生成逻辑，原赛艇流程仍按原 README 构建 Addressables。
 
+## 从团结引擎升级后的本地目录恢复
+
+如果先用团结引擎 2022 打开同一目录，再用 Unity 2020 打开，会残留升级后的依赖和缓存。典型错误是版本号包含 `t`、找不到 `com.unity.inputsystem@1.14.4-t1` / URP `14.2.0-t1`，以及新增 `com.unity.ai.navigation` 与 `Assets/NavMeshComponents` 的 GUID 冲突。只选择旧编辑器不会把升级后的项目文件恢复成旧版。
+
+关闭该项目的编辑器，下载根目录的 **Prepare-Unity2020.cmd** 并双击。工具会自动使用 GitHub Desktop 的 Git，从已发布的冒险提交 `da267c229f35c66ad771bbe094e4b2eeafd00811` 创建新的同级目录 `原目录-Unity2020-随机数-随机数`，保留原目录及未提交的修改。默认源目录是 `D:\github`；放在仓库根目录运行会自动识别该仓库，找不到时才询问路径。新副本只取 Git 提交里的文件，不复制升级后的工作区、Library 或包锁文件。它复用源目录的 Git LFS 缓存，下载缺失资源并检查 LFS 完整性，恢复原项目的导航组件和 Unity 2020 依赖版本。
+
+看到 **DONE** 后，在 Unity Hub 导入工具显示的新目录，选择 **2020.3.23f1**。新副本以后只用这个版本打开。工具没有在 Windows 上实际执行过；其 Git/LFS 创建副本流程在云端验证过。DONE 仅表示副本准备完成，不能替代 Unity 包解析、编译或试玩检查。
+
+Unity 包仍须从官方服务下载。如果新副本还报 `download.packages.unity.com` / `ECONNRESET`，这是包下载连接中断，需另行排查本机网络；恢复项目版本不能解决网络问题。不要关闭 TLS 检查或安装来源不明的替代包。私下提供新的 `Editor.log` 即可继续诊断；日志可能包含登录参数，不要公开上传到仓库或 Issue。
+
 ## 验证
 
 任务状态 EditMode 测试位于 `Assets/Tidebound/Tests/Editor/TideQuestTests.cs`。使用 Test Runner 运行 `Tidebound.Tests`，检查重复事件、防提前通关、灯塔距离/存活条件和新一轮进度。
