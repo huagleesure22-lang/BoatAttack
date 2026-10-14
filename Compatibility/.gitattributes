@@ -2,3 +2,6 @@ BoatAttack-2020-to-2019.3.zip -filter -diff -merge -text
 IslandQuest2019-Assets-and-Combat.zip -filter -diff -merge -text
 IslandQuest2019-Preview.png -filter -diff -merge -text
 IslandQuest2019-Input-Camera-Fix.zip -filter -diff -merge -text
+IslandQuest2019-Assignment-Studio.zip -filter -diff -merge -text
+IslandQuest2019-Assignment-Renders.zip -filter -diff -merge -text
+IslandQuest2019-Assignment-Preview.png -filter -diff -merge -text
