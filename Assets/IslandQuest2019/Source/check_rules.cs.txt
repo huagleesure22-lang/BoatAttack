@@ -23,6 +23,12 @@ class CheckRules
         Require(kills==6 && level==3,"Complete trial reaches six kills and weapon level three");
         Require(!QuestRules.CanOpen(kills,2,chest1)&&!QuestRules.CanOpen(kills,4,chest2),"Opened chests cannot grant repeated upgrades");
         Require(QuestRules.Upgrade(level)==3,"Upgrade caps at level three");
+        Require(!QuestRules.CanSimulate(false,true,true,100),"Enemies must not act before the player starts");
+        Require(!QuestRules.CanSimulate(true,false,true,100),"Unfocused game must not continue combat");
+        Require(!QuestRules.CanSimulate(true,true,false,100),"Released cursor pauses attacks");
+        Require(!QuestRules.CanSimulate(true,true,true,0),"Dead hero cannot act");
+        Require(QuestRules.CanSimulate(true,true,true,100),"Focused started game allows combat");
         Console.WriteLine("PASS: complete six-enemy progression, both chest gates, repeated-open prevention, upgrade cap.");
+        Console.WriteLine("PASS: no combat before start, while unfocused, while paused, or after death.");
     }
 }

@@ -17,6 +17,9 @@ namespace IslandQuest2019
         GUIStyle title, body, hint;
         Font font;
         public bool Finished { get { return kills >= totalEnemies; } }
+        public bool Started { get; private set; }
+        public bool CanSimulate { get { return hero && hero.view && QuestRules.CanSimulate(Started,Application.isFocused,hero.view.Controlling,hero.health); } }
+        public void Begin() { Started=true; }
 
         void Awake()
         {
@@ -28,9 +31,9 @@ namespace IslandQuest2019
         public void EnemyDefeated() { kills++; Notice("击败骷髅 / Skeleton defeated  " + kills + " / " + totalEnemies); }
         void Update()
         {
-            if (Input.GetKeyDown(KeyCode.F1)) showHUD = !showHUD;
-            if (Input.GetKeyDown(KeyCode.F8)) StartCoroutine(Capture());
-            if (hero && hero.health <= 0 && Input.GetKeyDown(KeyCode.R)) SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+            if (QuestInput.Pressed(KeyCode.F1)) showHUD = !showHUD;
+            if (QuestInput.Pressed(KeyCode.F8)) StartCoroutine(Capture());
+            if (hero && hero.health <= 0 && QuestInput.Pressed(KeyCode.R)) SceneManager.LoadScene(SceneManager.GetActiveScene().name);
         }
         System.Collections.IEnumerator Capture()
         {
@@ -76,6 +79,11 @@ namespace IslandQuest2019
             {
                 GUI.Box(new Rect(width*.5f-240,height*.42f-45,480,100),"");
                 GUI.Label(new Rect(width*.5f-220,height*.42f-28,440,70),hero.health <= 0 ? "试炼失败 · 按 R 重试" : "试炼完成！六只骷髅已清除。",hint);
+            }
+            else if(!showcase && hero && !CanSimulate)
+            {
+                GUI.Box(new Rect(width*.5f-240,height*.42f-45,480,100),"");
+                GUI.Label(new Rect(width*.5f-220,height*.42f-28,440,70),Started ? "已暂停 · 点击画面继续" : "点击画面开始试炼 · WASD 移动",hint);
             }
             GUI.matrix = previousMatrix;
         }

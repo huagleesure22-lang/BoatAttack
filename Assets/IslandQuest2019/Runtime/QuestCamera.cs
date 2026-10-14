@@ -7,15 +7,20 @@ namespace IslandQuest2019
         public Transform target;
         public float distance=5, yaw=180,pitch=18;
         public bool Controlling { get { return Cursor.lockState==CursorLockMode.Locked; } }
-        void Start() { Lock(); }
-        void Lock() { Cursor.lockState=CursorLockMode.Locked;Cursor.visible=false; }
+        void Start() { Cursor.lockState=CursorLockMode.None;Cursor.visible=true; }
+        void Lock()
+        {
+            Cursor.lockState=CursorLockMode.Locked;Cursor.visible=false;
+            QuestHero hero=target ? target.GetComponent<QuestHero>() : null;
+            if(hero && hero.game) hero.game.Begin();
+        }
         void Update()
         {
-            if(Input.GetKeyDown(KeyCode.Escape)){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
-            else if(Input.GetMouseButtonDown(0) && !Controlling) Lock();
+            if(QuestInput.Pressed(KeyCode.Escape)){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
+            else if(QuestInput.MousePressed(0) && !Controlling) Lock();
             if(!Controlling) return;
-            yaw+=Input.GetAxis("Mouse X")*2.3f; pitch=Mathf.Clamp(pitch-Input.GetAxis("Mouse Y")*2,-15,65);
-            distance=Mathf.Clamp(distance-Input.GetAxis("Mouse ScrollWheel")*3,2.5f,8);
+            yaw+=QuestInput.Look.x*2.3f; pitch=Mathf.Clamp(pitch-QuestInput.Look.y*2,-15,65);
+            distance=Mathf.Clamp(distance-QuestInput.Scroll*3,2.5f,8);
         }
         void LateUpdate()
         {
@@ -31,5 +36,7 @@ namespace IslandQuest2019
             transform.position=focus+direction*safe;transform.LookAt(focus);
         }
         void OnDisable(){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}
+        void OnApplicationFocus(bool focused)
+        {if(!focused){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;}}
     }
 }

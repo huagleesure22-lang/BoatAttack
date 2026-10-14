@@ -117,9 +117,14 @@ namespace IslandQuest2019.Editor
         {
             GameObject go=new GameObject(text);go.transform.position=position;go.transform.rotation=Quaternion.Euler(0,180,0);
             TextMesh tm=go.AddComponent<TextMesh>();tm.text=text;tm.characterSize=size;tm.fontSize=80;tm.anchor=TextAnchor.MiddleCenter;tm.color=new Color(.75f,.91f,.97f);
+            // Size by measured world width; long labels must not cover the models.
+            Renderer renderer=go.GetComponent<Renderer>();
+            float maxWidth=text=="TIDEWARD RELICS" ? 4.2f : text=="UPGRADE CHEST" ? 1.5f : 1.2f;
+            if(renderer && renderer.bounds.size.x>maxWidth) go.transform.localScale*=maxWidth/renderer.bounds.size.x;
         }
         static void Gallery()
         {
+            BackupScene(GalleryPath);
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
             RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Flat;RenderSettings.ambientLight=new Color(.3f,.37f,.45f);
             LightAt("Key Light",new Vector3(40,-30,0),new Color(.8f,.91f,1),1.1f);
@@ -129,7 +134,7 @@ namespace IslandQuest2019.Editor
             Spawn("Chest",new Vector3(2.15f,.55f,0));Block("Chest Pedestal",new Vector3(2.15f,.25f,0),new Vector3(1.5f,.55f,1.1f),materials["Navy"]);
             for(int i=0;i<3;i++)
             {Spawn("Sword"+(i+1),new Vector3(1.5f+i*.6f,.16f,1.2f));Block("Sword Stand",new Vector3(1.5f+i*.6f,.09f,1.2f),new Vector3(.36f,.16f,.3f),materials["Gold"]);}
-            Label("TIDEWARD RELICS",new Vector3(0,2.8f,-.15f),.12f);
+            Label("TIDEWARD RELICS",new Vector3(0,2.8f,-.15f),.04f);
             Label("HERO",new Vector3(-2,.15f,1.15f),.065f);Label("SKELETON",new Vector3(0,.15f,1.15f),.065f);
             Label("UPGRADE CHEST",new Vector3(2.1f,1.65f,0),.055f);
             Camera cam=CameraAt(new Vector3(3,2.8f,8),new Vector3(0,1,0));cam.backgroundColor=new Color(.035f,.065f,.09f);cam.clearFlags=CameraClearFlags.SolidColor;
@@ -160,6 +165,50 @@ namespace IslandQuest2019.Editor
             }
             return best;
         }
+        static Vector3 ClearTerraceAnchor()
+        {
+            Vector3 p=IslandAnchor();float top=p.y;
+            // Terrain samples include every part of the terrace and the initial camera path.
+            foreach(Terrain terrain in Terrain.activeTerrains)
+            {
+                TerrainData data=terrain.terrainData;Vector3 origin=terrain.transform.position;
+                for(float dx=-20;dx<=20;dx+=2) for(float dz=-20;dz<=20;dz+=2)
+                {
+                    Vector3 sample=p+new Vector3(dx,0,dz);
+                    if(sample.x>=origin.x && sample.z>=origin.z && sample.x<=origin.x+data.size.x && sample.z<=origin.z+data.size.z)
+                        top=Mathf.Max(top,terrain.SampleHeight(sample)+origin.y);
+                }
+                foreach(TreeInstance tree in data.treeInstances)
+                {
+                    Vector3 point=origin+Vector3.Scale(tree.position,data.size);
+                    TreePrototype[] prototypes=data.treePrototypes;
+                    if(tree.prototypeIndex<0 || tree.prototypeIndex>=prototypes.Length) continue;
+                    GameObject prefab=prototypes[tree.prototypeIndex].prefab;
+                    if(!prefab) continue;
+                    float height=0,radius=0;
+                    foreach(Renderer renderer in prefab.GetComponentsInChildren<Renderer>(true))
+                    {height=Mathf.Max(height,renderer.bounds.max.y);radius=Mathf.Max(radius,renderer.bounds.extents.x,renderer.bounds.extents.z);}
+                    if(Mathf.Abs(point.x-p.x)<=20+radius*tree.widthScale && Mathf.Abs(point.z-p.z)<=20+radius*tree.widthScale)
+                        top=Mathf.Max(top,point.y+Mathf.Max(height,12)*tree.heightScale);
+                }
+            }
+            foreach(MeshRenderer renderer in UnityEngine.Object.FindObjectsOfType<MeshRenderer>())
+            {
+                string name=renderer.name.ToLowerInvariant();
+                string layer=LayerMask.LayerToName(renderer.gameObject.layer);
+                if(layer=="3DSkybox" || layer=="Clouds" || name.Contains("water") || name.Contains("sky") || name.Contains("cloud") || name.Contains("foam")) continue;
+                Bounds bounds=renderer.bounds;
+                if(bounds.min.x<=p.x+20 && bounds.max.x>=p.x-20 && bounds.min.z<=p.z+20 && bounds.max.z>=p.z-20)
+                    top=Mathf.Max(top,bounds.max.y);
+            }
+            p.y=top+3;return p;
+        }
+        static void BackupScene(string path)
+        {
+            if(!File.Exists(path)) return;
+            string backup=Root+"/SceneBackups/"+Path.GetFileNameWithoutExtension(path)+"_"+DateTime.Now.ToString("yyyyMMdd_HHmmss_fff")+".unity";
+            Directory.CreateDirectory(Root+"/SceneBackups");AssetDatabase.Refresh();AssetDatabase.CopyAsset(path,backup);
+        }
         static QuestPose AddPose(GameObject actor,Transform visual)
         {
             QuestPose pose=actor.AddComponent<QuestPose>();pose.leftArm=Find(visual,"LeftArm");pose.rightArm=Find(visual,"RightArm");
@@ -174,10 +223,11 @@ namespace IslandQuest2019.Editor
         {
             const string clean="Assets/scenes/island_clean_2019.unity";
             if(!File.Exists(clean)) throw new FileNotFoundException("先打开/安装去掉船和浮标的 2019 海岛工程。",clean);
+            BackupScene(AdventurePath);
             EditorSceneManager.OpenScene(clean);EditorSceneManager.SaveScene(SceneManager.GetActiveScene(),AdventurePath);
             foreach(Camera c in UnityEngine.Object.FindObjectsOfType<Camera>()) c.enabled=false;
             foreach(AudioListener a in UnityEngine.Object.FindObjectsOfType<AudioListener>()) a.enabled=false;
-            Vector3 p=IslandAnchor();GameObject arena=new GameObject("Original Skeleton Trial Terrace");
+            Vector3 p=ClearTerraceAnchor();GameObject arena=new GameObject("Original Skeleton Trial Terrace");
             Block("Stone Trial Terrace",p-Vector3.up*.5f,new Vector3(28,1,24),materials["Stone"],arena.transform);
             for(int x=-12;x<=12;x+=4) for(int z=-10;z<=10;z+=4)
                 Block("Terrace Tile",p+new Vector3(x,.015f,z),new Vector3(3.94f,.035f,3.94f),materials[((x+z)%8)==0 ? "Navy" : "Stone"],arena.transform);
@@ -212,9 +262,11 @@ namespace IslandQuest2019.Editor
                 BoxCollider b=chest.AddComponent<BoxCollider>();b.size=new Vector3(1.2f,.9f,.8f);b.center=Vector3.up*.45f;
                 QuestChest upgrade=chest.AddComponent<QuestChest>();upgrade.lid=Find(chest.transform,"LidPivot");upgrade.game=game;upgrade.requiredKills=(i+1)*2;
             }
-            Label("TIDEWARD TRIAL",p+new Vector3(0,3.5f,11.3f),.18f);
+            RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight=new Color(.42f,.46f,.52f);
+            LightAt("Trial Fill Light",new Vector3(35,-25,0),new Color(.85f,.92f,1),.65f);
             EditorSceneManager.SaveScene(SceneManager.GetActiveScene(),AdventurePath);RegisterScenes();Selection.activeGameObject=player;
-            EditorUtility.DisplayDialog("第三人称战斗场景已生成","点击 Play。WASD 移动，鼠标转镜头，左键挥剑，E 开宝箱。\n先击败 2 / 4 只骷髅，分别升级武器。\n原静态海岛场景保留。","OK");
+            EditorUtility.DisplayDialog("第三人称战斗场景已生成","点击 Play，再点击游戏画面开始。WASD 移动，鼠标转镜头，左键挥剑，E 开宝箱。\n先击败 2 / 4 只骷髅，分别升级武器。\n原静态海岛场景保留，旧战斗场景有备份。","OK");
         }
         static void RegisterScenes()
         {

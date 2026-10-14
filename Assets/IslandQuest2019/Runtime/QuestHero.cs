@@ -21,25 +21,25 @@ namespace IslandQuest2019
         void Start()
         {
             controller = GetComponent<CharacterController>(); pose = GetComponent<QuestPose>(); spawn = transform.position;
-            SetWeapon(1);
+            health=100;SetWeapon(1);
         }
         void Update()
         {
-            if (health <= 0 || !view || !view.Controlling) { if (pose) pose.Animate(0,0); return; }
+            if (!game || !game.CanSimulate) { if (pose) pose.Animate(0,0); return; }
             float dt=Time.deltaTime; invulnerable -= dt; attackCooldown -= dt;
-            Vector2 input=Vector2.ClampMagnitude(new Vector2(Input.GetAxisRaw("Horizontal"),Input.GetAxisRaw("Vertical")),1);
+            Vector2 input=QuestInput.Movement;
             Vector3 forward=Vector3.ProjectOnPlane(view.transform.forward,Vector3.up).normalized;
             Vector3 right=Vector3.Cross(Vector3.up,forward);
             Vector3 move=forward*input.y+right*input.x;
-            bool running=Input.GetKey(KeyCode.LeftShift);
+            bool running=QuestInput.Held(KeyCode.LeftShift);
             if (move.sqrMagnitude>.01f) transform.rotation=Quaternion.Slerp(transform.rotation,Quaternion.LookRotation(move),dt*14);
             if (controller.isGrounded && vertical<0) vertical=-2;
-            if (controller.isGrounded && Input.GetKeyDown(KeyCode.Space)) vertical=7;
+            if (controller.isGrounded && QuestInput.Pressed(KeyCode.Space)) vertical=7;
             vertical-=20*dt;
             controller.Move((move*(running ? runSpeed : walkSpeed)+Vector3.up*vertical)*dt);
             if (transform.position.y<spawn.y-20)
             { controller.enabled=false;transform.position=spawn;controller.enabled=true; vertical=0;TakeDamage(10); }
-            if (Input.GetMouseButtonDown(0) && attackCooldown<=0)
+            if (QuestInput.MousePressed(0) && attackCooldown<=0)
             { attackTimer=.52f;attackCooldown=.65f;strikeDone=false; }
             float swing=0;
             if (attackTimer>0)
@@ -57,7 +57,7 @@ namespace IslandQuest2019
                 }
             }
             if (pose) pose.Animate(input.magnitude*(running ? 1.5f : 1),swing);
-            if (Input.GetKeyDown(KeyCode.E))
+            if (QuestInput.Pressed(KeyCode.E))
             {
                 QuestChest closest=null;float distance=2.5f;
                 foreach (QuestChest chest in FindObjectsOfType<QuestChest>())

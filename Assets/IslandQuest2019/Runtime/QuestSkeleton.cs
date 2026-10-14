@@ -24,7 +24,7 @@ namespace IslandQuest2019
                 if(deathTime>2.5f) Destroy(gameObject);
                 return;
             }
-            if(!hero || hero.health<=0) {pose.Animate(0,0);return;}
+            if(!hero || !game || !game.CanSimulate) {pose.Animate(0,0);return;}
             float dt=Time.deltaTime;cooldown-=dt;stagger-=dt;
             Vector3 delta=hero.transform.position-transform.position;delta.y=0;float range=delta.magnitude;
             Vector3 move=Vector3.zero;
