@@ -1,6 +1,7 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title BoatAttack - Prepare and ZIP the clean Unity 2019 island
+title BoatAttack - Unity 2019 island preparation v2
+echo Unity 2019 island preparation v2 - cached Git, shallow fetch, resumable steps.
 echo Prepare a separate Unity 2019.3.0f6 island project and ZIP.
 echo Your Unity 2020 project will not be changed.
 echo No administrator rights or Unity 2019 installation are needed for this step.
@@ -20,17 +21,46 @@ if errorlevel 1 goto missingLfs
 set "outputParent=%USERPROFILE%\Downloads"
 if exist "D:\" set "outputParent=D:"
 if not exist "%outputParent%" goto missingFolder
-set "projectPath=%outputParent%\BoatAttack-Island2019-%RANDOM%-%RANDOM%"
-if exist "%projectPath%" goto collision
-set "zipPath=%projectPath%.zip"
+set "projectPath=%outputParent%\BoatAttack-Island2019-Prepared"
+set "zipPath=%outputParent%\BoatAttack-Island2019-%RANDOM%-%RANDOM%.zip"
 if exist "%zipPath%" goto collision
 echo New project: "%projectPath%"
 echo ZIP to share: "%zipPath%"
 echo Keep this window open until DONE or ERROR appears.
 echo.
 set "GIT_LFS_SKIP_SMUDGE=1"
-"%gitExe%" clone --single-branch --no-checkout --branch island-clean-2019.3 https://github.com/huagleesure22-lang/BoatAttack.git "%projectPath%"
+if exist "%projectPath%" goto resumeProject
+if exist "D:\github\.git" goto cloneCachedGit
+"%gitExe%" init "%projectPath%"
 if errorlevel 1 goto failed
+goto markProject
+:cloneCachedGit
+echo Step 1: Copying cached Git data from D:\github without modifying it...
+"%gitExe%" clone --local --no-hardlinks --no-checkout "D:\github" "%projectPath%"
+if errorlevel 1 goto failed
+:markProject
+> "%projectPath%\.git\island2019-prepare-v2" echo Owned by the Island2019 preparation tool.
+if not exist "%projectPath%\.git\island2019-prepare-v2" goto failed
+goto configureProject
+:resumeProject
+if not exist "%projectPath%\.git\island2019-prepare-v2" goto collision
+echo Resuming the existing tool-created project; completed downloads are retained.
+if not exist "%projectPath%\.git\island2019-checked-out" goto configureProject
+"%gitExe%" -C "%projectPath%" diff --quiet
+if errorlevel 1 goto localEdits
+"%gitExe%" -C "%projectPath%" diff --cached --quiet
+if errorlevel 1 goto localEdits
+:configureProject
+"%gitExe%" -C "%projectPath%" config remote.origin.url https://github.com/huagleesure22-lang/BoatAttack.git
+if errorlevel 1 goto failed
+"%gitExe%" -C "%projectPath%" config remote.origin.fetch +refs/heads/island-clean-2019.3:refs/remotes/origin/island-clean-2019.3
+if errorlevel 1 goto failed
+set "fetchDepth=--depth=1"
+rem On later runs retain ancestry so fast-forward updates remain possible.
+if exist "%projectPath%\.git\island2019-checked-out" set "fetchDepth="
+echo Step 2: Fetching only the selected 2019 branch, using HTTP/1.1...
+"%gitExe%" -c http.version=HTTP/1.1 -c http.lowSpeedLimit=1024 -c http.lowSpeedTime=60 -C "%projectPath%" fetch %fetchDepth% --no-tags --progress origin refs/heads/island-clean-2019.3:refs/remotes/origin/island-clean-2019.3
+if errorlevel 1 goto networkFailed
 if not exist "D:\github\.git\lfs\objects" goto cacheCopied
 echo Reusing previously downloaded LFS objects...
 robocopy "D:\github\.git\lfs\objects" "%projectPath%\.git\lfs\objects" /E /R:1 /W:1 /NFL /NDL /NJH /NJS >nul
@@ -38,14 +68,21 @@ if errorlevel 8 goto failed
 :cacheCopied
 "%gitExe%" -C "%projectPath%" lfs install --local
 if errorlevel 1 goto failed
-"%gitExe%" -C "%projectPath%" checkout island-clean-2019.3
+if exist "%projectPath%\.git\island2019-checked-out" goto updateCheckout
+"%gitExe%" -C "%projectPath%" checkout -B island-clean-2019.3 origin/island-clean-2019.3
 if errorlevel 1 goto failed
+> "%projectPath%\.git\island2019-checked-out" echo Checkout completed.
+goto checkoutReady
+:updateCheckout
+"%gitExe%" -C "%projectPath%" merge --ff-only origin/island-clean-2019.3
+if errorlevel 1 goto localEdits
+:checkoutReady
 set "GIT_LFS_SKIP_SMUDGE="
 "%gitExe%" -C "%projectPath%" lfs checkout
 if errorlevel 1 goto failed
 echo Downloading any missing 2019 model and texture files...
-"%gitExe%" -C "%projectPath%" lfs pull
-if errorlevel 1 goto failed
+"%gitExe%" -c lfs.concurrenttransfers=2 -C "%projectPath%" lfs pull
+if errorlevel 1 goto networkFailed
 "%gitExe%" -C "%projectPath%" lfs fsck --objects --pointers
 if errorlevel 1 goto failed
 if not exist "%projectPath%\Assets\scenes\island_clean_2019.unity" goto failed
@@ -79,7 +116,19 @@ goto stop
 echo ERROR - No writable output folder was found.
 goto stop
 :collision
-echo ERROR - Generated destination already exists. Run this tool again.
+echo ERROR - A destination exists that this tool cannot safely reuse.
+echo Project folder: "%projectPath%"
+echo Send a screenshot. Do not delete or overwrite an existing project.
+goto stop
+:localEdits
+echo ERROR - The prepared copy contains local edits or cannot be fast-forwarded.
+echo Your edits were preserved. Send a screenshot; do not reset the project.
+goto stop
+:networkFailed
+echo ERROR - GitHub download connection failed. Completed steps were retained.
+echo Try another network, such as a phone hotspot, then run this SAME v2 tool again.
+echo It will resume the tool-created folder, not clone your Unity 2020 project again.
+echo Do not share a ZIP until DONE appears.
 goto stop
 :badVersion
 echo ERROR - Unexpected project version. Do not open this copy in Unity 2020.

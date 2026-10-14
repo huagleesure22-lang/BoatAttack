@@ -21,7 +21,11 @@
 
 ## 下载与压缩
 
-普通双击根目录的 **Prepare-Island2019.cmd**。它使用 GitHub Desktop 的 Git，把 `island-clean-2019.3` 分支下载到新的独立目录；复用 `D:\github` 中已经下载的 LFS 缓存，并下载缺失的 2019 资源，随后检查资源完整性。它不修改原来的 2020 项目，不需要管理员权限，也不需要在准备阶段安装 Unity 2019。
+普通双击根目录的 **Prepare-Island2019.cmd**。v2 使用 GitHub Desktop 的 Git，先复制 `D:\github` 已有的 Git 数据，随后通过 HTTP/1.1 只获取 `island-clean-2019.3` 的浅层快照，避免重复下载整条历史；复用原目录的 LFS 缓存，并以两个并行连接下载缺失的 2019 资源，随后检查资源完整性。它不修改原来的 2020 项目，不需要管理员权限，也不需要在准备阶段安装 Unity 2019。
+
+新目录固定为 `D:\BoatAttack-Island2019-Prepared`（没有 D 盘时使用当前用户 Downloads）。网络失败后，成功完成的 Git 对象及 LFS 文件会留在该目录。切换到可用网络后再次运行同一个 v2 工具即可继续；进行中的 Git 传输不保证按字节续传。工具仅复用带有自身标记的目录，并在已经检出的项目有本地修改时停止；不会对原项目 reset、clean 或强制覆盖。后续运行使用正常增量 fetch 和 fast-forward 更新，以保留浅仓库的已知提交关系。每次成功打包使用新的随机 ZIP 名称，不覆盖旧压缩包。
+
+HTTP/1.1 和较小下载量不能保证修复本机的网络重置。若仍报 `Connection was reset`，需要检查本机网络或代理；可以换手机热点后再运行，不要关闭 TLS 验证。此前 v1 随机目录下载未完成时，v2 会创建自己的独立目录，不会擅自删除失败目录。
 
 完成后，会在新工程旁生成一个 ZIP，包含 `Assets`、`Packages`、`ProjectSettings`、本说明和原 LICENSE。这个 ZIP 可直接发给同学。它不包含 Library、Temp、Git 数据或 Unity 编辑器；解压后的首次依赖包导入仍需网络。如果云端 GitHub ZIP 下载只包含 LFS 指针，请使用此工具或 GitHub Desktop 克隆分支，而不要把指针当作真实模型、贴图。
 
