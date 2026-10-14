@@ -1,0 +1,28 @@
+using System;
+using IslandQuest2019;
+class CheckRules
+{
+    static void Require(bool value,string description) { if(!value) throw new Exception(description); }
+    static void Main()
+    {
+        int kills=0,level=1;bool chest1=false,chest2=false;
+        int[] health={54,54,76,76,100,100};
+        Require(!QuestRules.CanOpen(kills,2,chest1),"Chest must stay locked before kills");
+        for(int i=0;i<health.Length;i++)
+        {
+            int hp=health[i],strikes=0;
+            while(hp>0){hp-=QuestRules.Damage(level);strikes++;}
+            Require(strikes==3,"Each phase must support the intended three-hit encounter");kills++;
+            if(kills==1) Require(!QuestRules.CanOpen(kills,2,chest1),"One kill does not open first chest");
+            if(kills==2)
+            {Require(QuestRules.CanOpen(kills,2,chest1),"First chest gate");chest1=true;level=QuestRules.Upgrade(level);}
+            if(kills==3) Require(!QuestRules.CanOpen(kills,4,chest2),"Three kills do not open second chest");
+            if(kills==4)
+            {Require(QuestRules.CanOpen(kills,4,chest2),"Second chest gate");chest2=true;level=QuestRules.Upgrade(level);}
+        }
+        Require(kills==6 && level==3,"Complete trial reaches six kills and weapon level three");
+        Require(!QuestRules.CanOpen(kills,2,chest1)&&!QuestRules.CanOpen(kills,4,chest2),"Opened chests cannot grant repeated upgrades");
+        Require(QuestRules.Upgrade(level)==3,"Upgrade caps at level three");
+        Console.WriteLine("PASS: complete six-enemy progression, both chest gates, repeated-open prevention, upgrade cap.");
+    }
+}

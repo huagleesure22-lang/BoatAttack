@@ -9,3 +9,9 @@
 目标编辑器为 **Unity 2019.3.0f6**；打开 `Assets/scenes/island_clean_2019.unity` 或菜单 **Island2019 → Open Clean Island**。Gameplay Ingredients 2019.3.0 源代码及许可证嵌入工程，避免另行 Git 下载；Unity 注册表依赖首次导入仍可能需要网络。
 
 本补丁以普通 Git 文件保存，浏览器 **Download raw file** 下载的就是 ZIP 二进制，不是 LFS 指针。已检查补丁 CRC、文件哈希、复制后版本/依赖、场景对象引用和不兼容二进制格式的排除。Windows CMD 与 Unity 2019 完整导入、编译、材质渲染仍需在本机验证，不能把生成 ZIP 当成已验证可以运行。
+
+## 原创数字资产与第三人称战斗附加包
+
+已有可打开的 2019.3.0f6 海岛工程后，下载 **IslandQuest2019-Assets-and-Combat.zip**，全部解压并运行 `Install-IslandQuest2019.cmd`。默认安装到 `D:\BoatAttack-2019-From2020-28614-30466`，仅增加新资产文件夹。运行编辑器菜单 **Island2019 → 1 - Build Assets and Gallery** 生成主人公、骷髅、宝箱与三阶长剑的真实网格、材质和预制体；菜单 **2 - Build Island Combat Scene** 另存石台战斗场景。
+
+展示场景数字键 0–4 切换资产取景，F8 保存截图。战斗场景支持第三人称移动、跳跃、转镜头、近战、骷髅追击和宝箱升级。随包包含原始 `.blend` 建模文件、建模脚本及 Blender 渲染总览；预览图不是 Unity 运行截图。规则流程和可用 Unity 托管 API 编译通过；Unity 2019 原生导入及 Play 尚需本机验证。详细使用方法见包内 README.txt 和 `Assets/IslandQuest2019/README.md`。
